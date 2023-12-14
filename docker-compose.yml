@@ -1,0 +1,42 @@
+version: "3"
+
+networks:
+  df-network:
+    driver: bridge
+
+services:
+  rethinkdb:
+    image: rethinkdb
+    ports:
+      - "28015:28015"
+    networks:
+      - df-network
+    volumes:
+      - C:/workspace/labs-device/RethinkDB:/data
+    command: rethinkdb --bind all --cache-size 8192 --http-port 8090
+
+  stf:
+    image: devicefarmer/stf:latest
+    user: "root"
+    networks:
+      - df-network
+    environment:
+      - STF_ADMIN_NAME=admin
+      - STF_ADMIN_EMAIL=admin@rootadmin.com
+      - RETHINKDB_PORT_28015_TCP=tcp://rethinkdb:28015
+    ports:
+      - "7100:7100"
+      - "7110:7110"
+      - "7400:7400"
+      - "7408:7408"
+      - "7404:7404"
+    command: >
+      sh -c "
+        apt-get update &&
+        apt-get install -y openjdk-8-jdk python3 wget unzip curl build-essential libssl-dev libffi-dev libxml2 libxslt1-dev zlib1g-dev libc6-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev tk-dev libbz2-dev adb &&
+        curl -sL https://deb.nodesource.com/setup_20.x | sh - &&
+        apt-get install -y nodejs &&
+        npm install -g appium@1.22.0 --unsafe-perm=true --allow-root --chromedriver-skip-install &&
+        adb start-server &&
+        stf local --adb-host 127.0.0.1 --public-ip 192.168.0.102
+      "
